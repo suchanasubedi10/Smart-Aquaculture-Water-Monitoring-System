@@ -191,6 +191,51 @@ cp .env.example .env
 # Edit .env and add your GOOGLE_API_KEY
 ```
 
+## For windows
+```cmd
+cd "E:\major project\water-intel-project"
+
+:: (if venv not created yet)
+python -m venv .venv
+
+:: activate venv
+.\.venv\Scripts\activate
+
+:: install deps (if not done)
+pip install -r requirements.txt
+
+:: STEP 1: Generate synthetic data
+python scripts/gen_synthetic_full.py ^
+  --out-dir data ^
+  --n-samples 10000 ^
+  --seed 42 ^
+  --add-anomalies 50
+
+:: STEP 2: Train classical ML models
+python scripts/train_all_models.py ^
+  --data-csv data\raw_combined.csv ^
+  --models-dir models ^
+  --seed 42
+
+:: STEP 3: Train LSTM forecasters (optional but recommended)
+python scripts/train_lstm_pytorch.py ^
+  --data-csv data\cleaned.csv ^
+  --models-dir models ^
+  --epochs 50 ^
+  --seed 42
+
+:: STEP 4: Evaluate classifier
+python scripts/evaluate_classifier.py evaluate ^
+  --data-csv data\cleaned.csv ^
+  --models-dir models ^
+  --save-labeled
+
+:: STEP 5: Start FastAPI server
+python -m uvicorn src.backend.main:app --reload
+
+
+```
+
 ### Data Generation & Model Training
 
 ```bash
