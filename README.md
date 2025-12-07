@@ -1,4 +1,4 @@
-# 🌊 Water Intelligence Project
+# 🌊 Smart-Aquaculture-Water-Monitoring-System
 
 <div align="center">
 
@@ -21,7 +21,7 @@ _Real-time monitoring, ML-based predictions, LSTM time-series forecasting, and i
 
 ## 📖 Project Overview
 
-The **Water Intelligence Project** is a comprehensive, production-ready system designed for **aquaculture and fish farming operations** to monitor, predict, and optimize water quality parameters. It combines classical machine learning with deep learning techniques to provide:
+The **Smart-Aquaculture-Water-Monitoring-System** is a comprehensive, production-ready system designed for **aquaculture and fish farming operations** to monitor, predict, and optimize water quality parameters. It combines classical machine learning with deep learning techniques to provide:
 
 - **Real-time water quality classification** (SAFE / STRESS / DANGER)
 - **Time-series forecasting** of pH and TDS using LSTM neural networks
@@ -193,7 +193,6 @@ cp .env.example .env
 
 ## For windows
 ```cmd
-cd "E:\major project\water-intel-project"
 
 :: (if venv not created yet)
 python -m venv .venv
