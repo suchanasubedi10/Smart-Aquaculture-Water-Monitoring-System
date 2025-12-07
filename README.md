@@ -145,7 +145,7 @@ Just install Docker and run:
 ```bash
 # Clone the repository
 git clone <repository-url>
-cd water-intel-project
+cd Smart-Aquaculture-Water-Monitoring-System
 
 # Build and run with Docker Compose
 docker-compose up --build
@@ -176,7 +176,7 @@ docker run -p 8000:8000 water-intel
 ```bash
 # 1. Clone the repository
 git clone <repository-url>
-cd water-intel-project
+cd Smart-Aquaculture-Water-Monitoring-System
 
 # 2. Create virtual environment
 python -m venv .venv
@@ -398,7 +398,7 @@ Each trained model includes a comprehensive model card (`*.model_card.json`) con
 ## 📁 Project Structure
 
 ```
-water-intel-project/
+Smart-Aquaculture-Water-Monitoring-System/
 │
 ├── 📂 data/                          # Data directory
 │   ├── raw_combined.csv              # Generated raw sensor data

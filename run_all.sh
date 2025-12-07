@@ -227,8 +227,8 @@ if [ "$NO_SERVER" = false ]; then
     log_info "Press Ctrl+C to stop"
     echo ""
     
-    cd src/backend
-    uvicorn main:app --host "$HOST" --port "$PORT" --reload
+    python -m uvicorn src.backend.main:app --reload
+
 else
     log_success "Setup complete! (--no-server specified)"
     echo ""
