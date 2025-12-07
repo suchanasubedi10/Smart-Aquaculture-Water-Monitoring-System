@@ -1,0 +1,26 @@
+{
+  "name": "virtual_do_reg",
+  "version": "7d6d53e9-abd4-4da5-93c4-60d780b3796a",
+  "created_at": "2025-12-07T14:30:18.003278",
+  "model_type": "RandomForestRegressor",
+  "training_args": {
+    "n_estimators": 200,
+    "max_depth": 12,
+    "test_size": 0.2,
+    "seed": 42
+  },
+  "feature_list": [
+    "ph",
+    "tds",
+    "ph_roll",
+    "tds_roll",
+    "hour_sin",
+    "hour_cos",
+    "is_dawn"
+  ],
+  "metrics_summary": {
+    "rmse": 0.4630293960533091,
+    "n_train": 7840,
+    "n_test": 1960
+  }
+}

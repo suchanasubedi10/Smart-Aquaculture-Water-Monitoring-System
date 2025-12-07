@@ -1,0 +1,26 @@
+{
+  "name": "virtual_temp_reg",
+  "version": "95c39c69-dde7-4296-8ac8-e86e2df9e46f",
+  "created_at": "2025-12-07T14:30:12.220714",
+  "model_type": "RandomForestRegressor",
+  "training_args": {
+    "n_estimators": 200,
+    "max_depth": 12,
+    "test_size": 0.2,
+    "seed": 42
+  },
+  "feature_list": [
+    "ph",
+    "tds",
+    "ph_roll",
+    "tds_roll",
+    "hour_sin",
+    "hour_cos",
+    "is_dawn"
+  ],
+  "metrics_summary": {
+    "rmse": 2.3018080097081506,
+    "n_train": 7840,
+    "n_test": 1960
+  }
+}

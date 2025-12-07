@@ -1,0 +1,24 @@
+{
+  "name": "anomaly_if",
+  "version": "18a18736-ff98-40e3-ae70-73682ec5ce10",
+  "created_at": "2025-12-07T14:30:50.744875",
+  "model_type": "IsolationForest",
+  "training_args": {
+    "n_estimators": 200,
+    "contamination": 0.01,
+    "seed": 42
+  },
+  "feature_list": [
+    "ph",
+    "tds",
+    "ammonia_risk",
+    "ph_roll",
+    "tds_roll",
+    "delta_ph",
+    "delta_tds"
+  ],
+  "metrics_summary": {
+    "n_samples": 9800,
+    "contamination": 0.01
+  }
+}

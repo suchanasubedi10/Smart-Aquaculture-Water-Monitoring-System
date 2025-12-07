@@ -1,0 +1,40 @@
+{
+  "name": "classifier_rf",
+  "version": "34e836d6-879a-4d2b-a3bf-b29eeaeeaf07",
+  "created_at": "2025-12-07T14:30:56.028167",
+  "model_type": "RandomForestClassifier",
+  "training_args": {
+    "n_estimators": 300,
+    "max_depth": 14,
+    "class_weight": {
+      "0": 1,
+      "1": 2,
+      "2": 10
+    },
+    "test_size": 0.2,
+    "seed": 42
+  },
+  "feature_list": [
+    "ph",
+    "tds",
+    "ammonia_risk",
+    "hour_sin",
+    "hour_cos",
+    "is_dawn",
+    "ph_roll",
+    "tds_roll",
+    "delta_ph",
+    "delta_tds"
+  ],
+  "metrics_summary": {
+    "accuracy": 0.6571428571428571,
+    "weighted_f1": 0.6527933859198954,
+    "n_train": 7840,
+    "n_test": 1960,
+    "class_distribution": {
+      "1": 5295,
+      "0": 4499,
+      "2": 6
+    }
+  }
+}

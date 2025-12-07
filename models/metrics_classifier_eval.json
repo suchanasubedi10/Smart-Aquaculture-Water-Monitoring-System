@@ -1,0 +1,52 @@
+{
+  "accuracy": 0.8873469387755102,
+  "weighted_precision": 0.8914867700500817,
+  "weighted_recall": 0.8873469387755102,
+  "weighted_f1": 0.8864423390443928,
+  "per_class": {
+    "Safe": {
+      "precision": 0.9307282415630551,
+      "recall": 0.8152922871749277,
+      "f1": 0.8691943127962085,
+      "support": 4499
+    },
+    "Stress": {
+      "precision": 0.8580215274218349,
+      "recall": 0.9484419263456091,
+      "f1": 0.9009687836383208,
+      "support": 5295
+    },
+    "Danger": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 6
+    }
+  },
+  "confusion_matrix": [
+    [
+      3668,
+      831,
+      0
+    ],
+    [
+      273,
+      5022,
+      0
+    ],
+    [
+      0,
+      0,
+      6
+    ]
+  ],
+  "class_distribution": {
+    "Safe": 4499,
+    "Stress": 5295,
+    "Danger": 6
+  },
+  "evaluation_date": "2025-12-07T14:31:43.014665",
+  "data_file": "data\\cleaned.csv",
+  "n_samples": 9800,
+  "used_existing_labels": false
+}

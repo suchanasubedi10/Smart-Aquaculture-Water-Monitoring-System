@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  aqua-major:
+    image: aqua-major:latest
+    container_name: aqua-major-app
+    env_file:
+      - .env
+    ports:
+      - '8000:8000'
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    restart: unless-stopped
+# docker pull sijanpaudel14/aqua-major:latest
+# docker docker compose up

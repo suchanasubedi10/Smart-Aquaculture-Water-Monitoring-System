@@ -1,0 +1,55 @@
+{
+  "training_date": "2025-12-07T14:30:06.587011",
+  "data_csv": "data\\raw_combined.csv",
+  "n_samples_raw": 9800,
+  "seed": 42,
+  "test_size": 0.2,
+  "models": {
+    "virtual_sensors": {
+      "temp": {
+        "rmse": 2.3018080097081506,
+        "n_train": 7840,
+        "n_test": 1960
+      },
+      "do": {
+        "rmse": 0.4630293960533091,
+        "n_train": 7840,
+        "n_test": 1960
+      },
+      "turbidity": {
+        "rmse": 19.492735498267535,
+        "n_train": 7840,
+        "n_test": 1960
+      }
+    },
+    "forecasters": {
+      "ph": {
+        "rmse": 0.13733762362113366,
+        "n_train": 7840,
+        "n_test": 1960
+      },
+      "tds": {
+        "rmse": 57.63812363156438,
+        "n_train": 7840,
+        "n_test": 1960
+      }
+    },
+    "anomaly": {
+      "anomaly": {
+        "n_samples": 9800,
+        "contamination": 0.01
+      }
+    },
+    "classifier": {
+      "accuracy": 0.6571428571428571,
+      "weighted_f1": 0.6527933859198954,
+      "n_train": 7840,
+      "n_test": 1960,
+      "class_distribution": {
+        "1": 5295,
+        "0": 4499,
+        "2": 6
+      }
+    }
+  }
+}

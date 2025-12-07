@@ -1,0 +1,2590 @@
+<!DOCTYPE html>
+<html lang="en" class="">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Smart Aquaculture Water Monitoring</title>
+    <!-- Tailwind CSS CDN with dark mode -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              primary: {
+                50: '#eff6ff',
+                100: '#dbeafe',
+                200: '#bfdbfe',
+                300: '#93c5fd',
+                400: '#60a5fa',
+                500: '#3b82f6',
+                600: '#2563eb',
+                700: '#1d4ed8',
+                800: '#1e40af',
+                900: '#1e3a8a',
+              },
+            },
+          },
+        },
+      }
+    </script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+      /* Custom scrollbar */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 3px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+      }
+      .dark ::-webkit-scrollbar-thumb {
+        background: #475569;
+      }
+      .dark ::-webkit-scrollbar-thumb:hover {
+        background: #64748b;
+      }
+
+      /* Smooth transitions */
+      .sidebar-transition {
+        transition: transform 0.3s ease-in-out;
+      }
+
+      /* Status badges */
+      .status-safe {
+        @apply bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800;
+      }
+      .status-stress {
+        @apply bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800;
+      }
+      .status-danger {
+        @apply bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800;
+      }
+
+      /* Card hover effects */
+      .card-hover {
+        @apply transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5;
+      }
+
+      /* Pulse animation for live indicators */
+      .pulse-dot {
+        animation: pulse-dot 2s infinite;
+      }
+      @keyframes pulse-dot {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
+
+      /* Custom range slider */
+      input[type='range'].slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        cursor: pointer;
+      }
+      input[type='range'].slider-thumb::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 16px;
+        height: 16px;
+        background: #3b82f6;
+        border-radius: 50%;
+        cursor: pointer;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        transition: background 0.15s ease;
+      }
+      input[type='range'].slider-thumb::-webkit-slider-thumb:hover {
+        background: #2563eb;
+      }
+      input[type='range'].slider-thumb::-moz-range-thumb {
+        width: 16px;
+        height: 16px;
+        background: #3b82f6;
+        border: none;
+        border-radius: 50%;
+        cursor: pointer;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      }
+
+      /* Mic button listening animation */
+      .mic-listening {
+        animation: mic-pulse 1s infinite;
+      }
+      @keyframes mic-pulse {
+        0%,
+        100% {
+          box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+        }
+        50% {
+          box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+        }
+      }
+    </style>
+  </head>
+  <body
+    class="bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-200"
+  >
+    <!-- Notification Container -->
+    <div
+      id="notificationContainer"
+      class="fixed top-4 right-4 z-50 space-y-2 max-w-sm"
+    ></div>
+
+    <!-- Mobile Sidebar Overlay -->
+    <div
+      id="sidebarOverlay"
+      class="fixed inset-0 bg-black/50 z-40 hidden lg:hidden"
+    ></div>
+
+    <!-- Mobile Sidebar -->
+    <aside
+      id="mobileSidebar"
+      class="fixed inset-y-0 left-0 w-64 bg-white dark:bg-gray-800 shadow-xl z-50 transform -translate-x-full sidebar-transition lg:hidden"
+    >
+      <div class="flex flex-col h-full">
+        <!-- Mobile Logo -->
+        <div
+          class="flex items-center justify-between px-4 py-4 border-b dark:border-gray-700"
+        >
+          <div class="flex items-center space-x-2">
+            <div
+              class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center"
+            >
+              <svg
+                class="w-5 h-5 text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+                />
+              </svg>
+            </div>
+            <span class="font-bold text-gray-800 dark:text-white">AquaAI</span>
+          </div>
+          <button
+            onclick="closeMobileSidebar()"
+            class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+          >
+            <svg
+              class="w-5 h-5 text-gray-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
+        <!-- Mobile Nav -->
+        <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+          <a
+            href="#"
+            data-tab="dashboard"
+            class="flex items-center px-3 py-2.5 rounded-lg text-sm font-medium bg-blue-600 text-white"
+          >
+            <svg
+              class="w-5 h-5 mr-3"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+              />
+            </svg>
+            Dashboard
+          </a>
+          <a
+            href="#"
+            data-tab="forecast"
+            class="flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+          >
+            <svg
+              class="w-5 h-5 mr-3"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"
+              />
+            </svg>
+            Forecast
+          </a>
+          <a
+            href="#"
+            data-tab="assistant"
+            class="flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+          >
+            <svg
+              class="w-5 h-5 mr-3"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
+              />
+            </svg>
+            AI Assistant
+          </a>
+          <a
+            href="#"
+            data-tab="reports"
+            class="flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+          >
+            <svg
+              class="w-5 h-5 mr-3"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              />
+            </svg>
+            Reports
+          </a>
+          <a
+            href="#"
+            data-tab="sensors"
+            class="flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+          >
+            <svg
+              class="w-5 h-5 mr-3"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"
+              />
+            </svg>
+            Sensor Health
+          </a>
+          <a
+            href="#"
+            data-tab="settings"
+            class="flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+          >
+            <svg
+              class="w-5 h-5 mr-3"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+              />
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+              />
+            </svg>
+            Settings
+          </a>
+        </nav>
+      </div>
+    </aside>
+
+    <!-- Desktop Layout -->
+    <div class="flex h-screen overflow-hidden">
+      <!-- Desktop Sidebar -->
+      <aside class="hidden lg:flex lg:flex-shrink-0">
+        <div
+          class="flex flex-col w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700"
+        >
+          <!-- Logo -->
+          <div
+            class="flex items-center px-4 py-5 border-b border-gray-200 dark:border-gray-700"
+          >
+            <div
+              class="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center shadow-lg"
+            >
+              <svg
+                class="w-6 h-6 text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+                />
+              </svg>
+            </div>
+            <div class="ml-3">
+              <h1 class="text-lg font-bold text-gray-800 dark:text-white">
+                AquaAI
+              </h1>
+              <p class="text-xs text-gray-500 dark:text-gray-400">
+                Water Monitoring
+              </p>
+            </div>
+          </div>
+
+          <!-- Navigation -->
+          <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+            <a
+              href="#"
+              data-tab="dashboard"
+              class="flex items-center px-3 py-2.5 rounded-lg text-sm font-medium bg-blue-600 text-white"
+            >
+              <svg
+                class="w-5 h-5 mr-3"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                />
+              </svg>
+              Dashboard
+            </a>
+            <a
+              href="#"
+              data-tab="forecast"
+              class="flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+            >
+              <svg
+                class="w-5 h-5 mr-3"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"
+                />
+              </svg>
+              Forecast
+            </a>
+            <a
+              href="#"
+              data-tab="assistant"
+              class="flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+            >
+              <svg
+                class="w-5 h-5 mr-3"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
+                />
+              </svg>
+              AI Assistant
+            </a>
+            <a
+              href="#"
+              data-tab="reports"
+              class="flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+            >
+              <svg
+                class="w-5 h-5 mr-3"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
+              </svg>
+              Reports
+            </a>
+            <a
+              href="#"
+              data-tab="sensors"
+              class="flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+            >
+              <svg
+                class="w-5 h-5 mr-3"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"
+                />
+              </svg>
+              Sensor Health
+            </a>
+            <a
+              href="#"
+              data-tab="settings"
+              class="flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+            >
+              <svg
+                class="w-5 h-5 mr-3"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                />
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                />
+              </svg>
+              Settings
+            </a>
+          </nav>
+
+          <!-- Sidebar Footer -->
+          <div class="p-4 border-t border-gray-200 dark:border-gray-700">
+            <div class="flex items-center">
+              <div class="w-2 h-2 bg-green-500 rounded-full pulse-dot"></div>
+              <span class="ml-2 text-xs text-gray-500 dark:text-gray-400"
+                >System Online</span
+              >
+            </div>
+            <div class="flex items-center justify-between mt-2">
+              <a
+                href="/docs"
+                class="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                >API Docs →</a
+              >
+              <button
+                onclick="showShortcutsHelp()"
+                class="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                title="Keyboard shortcuts"
+              >
+                ⌨️ Ctrl+/
+              </button>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main Content Area -->
+      <div class="flex-1 flex flex-col overflow-hidden">
+        <!-- Top Header Bar -->
+        <header
+          class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3"
+        >
+          <div class="flex items-center justify-between">
+            <!-- Left: Mobile menu + Title -->
+            <div class="flex items-center">
+              <button
+                id="mobileMenuBtn"
+                class="lg:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 mr-2"
+              >
+                <svg
+                  class="w-6 h-6 text-gray-600 dark:text-gray-300"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
+                </svg>
+              </button>
+              <div>
+                <h1 class="text-lg font-semibold text-gray-800 dark:text-white">
+                  Smart Aquaculture Water Monitoring
+                </h1>
+                <p
+                  class="text-xs text-gray-500 dark:text-gray-400 hidden sm:block"
+                >
+                  Using AI and IoT for Real-time Water Quality Analysis
+                </p>
+              </div>
+            </div>
+
+            <!-- Right: Actions -->
+            <div class="flex items-center space-x-2">
+              <!-- Connection Status -->
+              <div
+                id="connectionStatus"
+                class="hidden sm:flex items-center px-3 py-1.5 bg-green-50 dark:bg-green-900/30 rounded-full cursor-pointer"
+                title="Click to check connection"
+                onclick="checkApiHealth()"
+              >
+                <div
+                  id="connectionDot"
+                  class="w-2 h-2 bg-green-500 rounded-full pulse-dot mr-2"
+                ></div>
+                <span
+                  id="connectionText"
+                  class="text-xs font-medium text-green-700 dark:text-green-400"
+                  >Connected</span
+                >
+              </div>
+
+              <!-- Last Refresh -->
+              <div
+                class="hidden md:flex items-center px-3 py-1.5 bg-gray-100 dark:bg-gray-700 rounded-full text-xs text-gray-600 dark:text-gray-400"
+              >
+                <svg
+                  class="w-3 h-3 mr-1"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <span id="lastRefreshTime">--:--</span>
+              </div>
+
+              <!-- Theme Toggle -->
+              <button
+                id="themeToggle"
+                class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              >
+                <svg
+                  id="sunIcon"
+                  class="w-5 h-5 text-gray-600 dark:text-gray-300 hidden"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
+                  />
+                </svg>
+                <svg
+                  id="moonIcon"
+                  class="w-5 h-5 text-gray-600 dark:text-gray-300"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
+                  />
+                </svg>
+              </button>
+
+              <!-- Keyboard Shortcuts Help -->
+              <button
+                onclick="showShortcutsHelp()"
+                class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                title="Keyboard Shortcuts (Ctrl+/)"
+              >
+                <svg
+                  class="w-5 h-5 text-gray-600 dark:text-gray-300"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              </button>
+
+              <!-- Notifications -->
+              <button
+                class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors relative"
+              >
+                <svg
+                  class="w-5 h-5 text-gray-600 dark:text-gray-300"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+                  />
+                </svg>
+                <span
+                  class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"
+                ></span>
+              </button>
+            </div>
+          </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-y-auto p-4 lg:p-6">
+          <!-- Dashboard Content -->
+          <div data-content="dashboard" class="">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <!-- Left Column: Input & Status -->
+              <div class="lg:col-span-1 space-y-6">
+                <!-- Prediction Input Card -->
+                <div
+                  class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 card-hover"
+                >
+                  <h2
+                    class="text-lg font-semibold text-gray-800 dark:text-white mb-4 flex items-center"
+                  >
+                    <div
+                      class="w-8 h-8 bg-blue-100 dark:bg-blue-900/50 rounded-lg flex items-center justify-center mr-3"
+                    >
+                      <svg
+                        class="w-4 h-4 text-blue-600 dark:text-blue-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                        />
+                      </svg>
+                    </div>
+                    Sensor Input
+                  </h2>
+                  <div class="space-y-4">
+                    <div>
+                      <label
+                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                        >pH Value</label
+                      >
+                      <input
+                        id="ph"
+                        type="number"
+                        step="0.1"
+                        value="7.4"
+                        min="0"
+                        max="14"
+                        class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"
+                      />
+                    </div>
+                    <div>
+                      <label
+                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                        >TDS (mg/L)</label
+                      >
+                      <input
+                        id="tds"
+                        type="number"
+                        step="1"
+                        value="350"
+                        min="0"
+                        class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"
+                      />
+                    </div>
+                    <div>
+                      <label
+                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                        >Timestamp</label
+                      >
+                      <input
+                        id="timestamp"
+                        type="datetime-local"
+                        class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"
+                      />
+                    </div>
+                    <div>
+                      <label
+                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                        >Device ID</label
+                      >
+                      <input
+                        id="deviceId"
+                        type="text"
+                        value="sensor-001"
+                        class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"
+                      />
+                    </div>
+                    <div class="flex space-x-3 pt-2">
+                      <button
+                        id="predictBtn"
+                        class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2.5 px-4 rounded-lg transition-colors font-medium flex items-center justify-center"
+                      >
+                        <svg
+                          class="w-4 h-4 mr-2"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M13 10V3L4 14h7v7l9-11h-7z"
+                          />
+                        </svg>
+                        Predict Now
+                      </button>
+                      <button
+                        id="forecastBtn"
+                        class="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-2.5 px-4 rounded-lg transition-colors font-medium"
+                      >
+                        Forecast
+                      </button>
+                    </div>
+
+                    <!-- Quick Test Scenarios -->
+                    <div
+                      class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700"
+                    >
+                      <p
+                        class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2"
+                      >
+                        Quick Test Scenarios
+                      </p>
+                      <div class="grid grid-cols-3 gap-2">
+                        <button
+                          onclick="setQuickScenario('safe')"
+                          class="px-2 py-1.5 text-xs bg-green-100 hover:bg-green-200 dark:bg-green-900/30 dark:hover:bg-green-900/50 text-green-700 dark:text-green-400 rounded-lg transition-colors font-medium"
+                        >
+                          🟢 Safe
+                        </button>
+                        <button
+                          onclick="setQuickScenario('stress')"
+                          class="px-2 py-1.5 text-xs bg-yellow-100 hover:bg-yellow-200 dark:bg-yellow-900/30 dark:hover:bg-yellow-900/50 text-yellow-700 dark:text-yellow-400 rounded-lg transition-colors font-medium"
+                        >
+                          🟡 Stress
+                        </button>
+                        <button
+                          onclick="setQuickScenario('danger')"
+                          class="px-2 py-1.5 text-xs bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-700 dark:text-red-400 rounded-lg transition-colors font-medium"
+                        >
+                          🔴 Danger
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Model Status Card -->
+                <div
+                  class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 card-hover"
+                >
+                  <h2
+                    class="text-lg font-semibold text-gray-800 dark:text-white mb-4 flex items-center"
+                  >
+                    <div
+                      class="w-8 h-8 bg-green-100 dark:bg-green-900/50 rounded-lg flex items-center justify-center mr-3"
+                    >
+                      <svg
+                        class="w-4 h-4 text-green-600 dark:text-green-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                    </div>
+                    Model Status
+                  </h2>
+                  <div
+                    id="modelStatus"
+                    class="text-sm text-gray-600 dark:text-gray-400"
+                  >
+                    <div class="animate-pulse flex items-center">
+                      <div
+                        class="w-4 h-4 bg-gray-200 dark:bg-gray-700 rounded-full mr-2"
+                      ></div>
+                      <div
+                        class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24"
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Live Statistics Card -->
+                <div
+                  class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 card-hover"
+                >
+                  <h2
+                    class="text-lg font-semibold text-gray-800 dark:text-white mb-4 flex items-center"
+                  >
+                    <div
+                      class="w-8 h-8 bg-teal-100 dark:bg-teal-900/50 rounded-lg flex items-center justify-center mr-3"
+                    >
+                      <svg
+                        class="w-4 h-4 text-teal-600 dark:text-teal-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                        />
+                      </svg>
+                    </div>
+                    Live Statistics
+                  </h2>
+                  <div id="liveStats" class="space-y-3">
+                    <div
+                      class="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700"
+                    >
+                      <span class="text-sm text-gray-600 dark:text-gray-400"
+                        >Total Readings</span
+                      >
+                      <span
+                        id="statTotalReadings"
+                        class="font-semibold text-gray-800 dark:text-white"
+                        >0</span
+                      >
+                    </div>
+                    <div
+                      class="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700"
+                    >
+                      <span class="text-sm text-gray-600 dark:text-gray-400"
+                        >Avg pH</span
+                      >
+                      <span
+                        id="statAvgPh"
+                        class="font-semibold text-blue-600 dark:text-blue-400"
+                        >--</span
+                      >
+                    </div>
+                    <div
+                      class="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700"
+                    >
+                      <span class="text-sm text-gray-600 dark:text-gray-400"
+                        >Avg TDS</span
+                      >
+                      <span
+                        id="statAvgTds"
+                        class="font-semibold text-purple-600 dark:text-purple-400"
+                        >--</span
+                      >
+                    </div>
+                    <div
+                      class="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700"
+                    >
+                      <span class="text-sm text-gray-600 dark:text-gray-400"
+                        >pH Range</span
+                      >
+                      <span
+                        id="statPhRange"
+                        class="font-semibold text-gray-800 dark:text-white text-xs"
+                        >--</span
+                      >
+                    </div>
+                    <div
+                      class="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700"
+                    >
+                      <span class="text-sm text-gray-600 dark:text-gray-400"
+                        >TDS Range</span
+                      >
+                      <span
+                        id="statTdsRange"
+                        class="font-semibold text-gray-800 dark:text-white text-xs"
+                        >--</span
+                      >
+                    </div>
+                    <div class="flex justify-between items-center py-2">
+                      <span class="text-sm text-gray-600 dark:text-gray-400"
+                        >Anomaly Rate</span
+                      >
+                      <span
+                        id="statAnomalyRate"
+                        class="font-semibold text-orange-600 dark:text-orange-400"
+                        >0%</span
+                      >
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Export Data Card -->
+                <div
+                  class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 card-hover"
+                >
+                  <h2
+                    class="text-lg font-semibold text-gray-800 dark:text-white mb-4"
+                  >
+                    Export Data
+                  </h2>
+                  <button
+                    id="downloadBtn"
+                    class="w-full bg-gray-600 hover:bg-gray-700 text-white py-2.5 px-4 rounded-lg transition-colors font-medium flex items-center justify-center"
+                  >
+                    <svg
+                      class="w-5 h-5 mr-2"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                      />
+                    </svg>
+                    Download CSV
+                  </button>
+                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                    Export recent readings history
+                  </p>
+                </div>
+              </div>
+
+              <!-- Right Column: Results -->
+              <div class="lg:col-span-2 space-y-6">
+                <!-- Water Quality Score Gauge -->
+                <div
+                  class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 card-hover"
+                >
+                  <h2
+                    class="text-lg font-semibold text-gray-800 dark:text-white mb-4 flex items-center"
+                  >
+                    <div
+                      class="w-8 h-8 bg-emerald-100 dark:bg-emerald-900/50 rounded-lg flex items-center justify-center mr-3"
+                    >
+                      <svg
+                        class="w-4 h-4 text-emerald-600 dark:text-emerald-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                    </div>
+                    Water Quality Score
+                  </h2>
+                  <div class="flex items-center justify-center">
+                    <div class="relative w-48 h-48">
+                      <!-- Background Circle -->
+                      <svg
+                        class="w-full h-full transform -rotate-90"
+                        viewBox="0 0 100 100"
+                      >
+                        <circle
+                          cx="50"
+                          cy="50"
+                          r="40"
+                          stroke="currentColor"
+                          stroke-width="8"
+                          fill="none"
+                          class="text-gray-200 dark:text-gray-700"
+                        />
+                        <!-- Progress Circle -->
+                        <circle
+                          id="qualityGaugeCircle"
+                          cx="50"
+                          cy="50"
+                          r="40"
+                          stroke="currentColor"
+                          stroke-width="8"
+                          fill="none"
+                          stroke-linecap="round"
+                          class="text-gray-300 dark:text-gray-600 transition-all duration-500"
+                          stroke-dasharray="251.2"
+                          stroke-dashoffset="251.2"
+                        />
+                      </svg>
+                      <!-- Center Text -->
+                      <div
+                        class="absolute inset-0 flex flex-col items-center justify-center"
+                      >
+                        <span
+                          id="qualityScore"
+                          class="text-4xl font-bold text-gray-400 dark:text-gray-500"
+                          >--</span
+                        >
+                        <span
+                          id="qualityLabel"
+                          class="text-sm text-gray-500 dark:text-gray-400 mt-1"
+                          >No Data</span
+                        >
+                      </div>
+                    </div>
+                  </div>
+                  <div class="flex justify-center gap-4 mt-4 text-xs">
+                    <div class="flex items-center gap-1">
+                      <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                      <span class="text-gray-600 dark:text-gray-400"
+                        >Excellent (80-100)</span
+                      >
+                    </div>
+                    <div class="flex items-center gap-1">
+                      <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                      <span class="text-gray-600 dark:text-gray-400"
+                        >Fair (50-79)</span
+                      >
+                    </div>
+                    <div class="flex items-center gap-1">
+                      <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                      <span class="text-gray-600 dark:text-gray-400"
+                        >Poor (0-49)</span
+                      >
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Prediction Results Card -->
+                <div
+                  class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 card-hover"
+                >
+                  <h2
+                    class="text-lg font-semibold text-gray-800 dark:text-white mb-4 flex items-center"
+                  >
+                    <div
+                      class="w-8 h-8 bg-indigo-100 dark:bg-indigo-900/50 rounded-lg flex items-center justify-center mr-3"
+                    >
+                      <svg
+                        class="w-4 h-4 text-indigo-600 dark:text-indigo-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M13 10V3L4 14h7v7l9-11h-7z"
+                        />
+                      </svg>
+                    </div>
+                    Prediction Results
+                  </h2>
+
+                  <!-- Status Badge -->
+                  <div id="statusBadge" class="mb-4">
+                    <span
+                      class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-600"
+                    >
+                      <svg
+                        class="w-4 h-4 mr-2 animate-pulse"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                      Awaiting input...
+                    </span>
+                  </div>
+
+                  <!-- Results Grid -->
+                  <div
+                    id="predictionResults"
+                    class="grid grid-cols-2 md:grid-cols-4 gap-4"
+                  >
+                    <div
+                      class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 text-center"
+                    >
+                      <div
+                        class="text-2xl font-bold text-gray-400 dark:text-gray-500"
+                      >
+                        --
+                      </div>
+                      <div
+                        class="text-xs text-gray-500 dark:text-gray-400 mt-1"
+                      >
+                        pH
+                      </div>
+                    </div>
+                    <div
+                      class="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 text-center"
+                    >
+                      <div
+                        class="text-2xl font-bold text-gray-400 dark:text-gray-500"
+                      >
+                        --
+                      </div>
+                      <div
+                        class="text-xs text-gray-500 dark:text-gray-400 mt-1"
+                      >
+                        TDS
+                      </div>
+                    </div>
+                    <div
+                      class="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4 text-center"
+                    >
+                      <div
+                        class="text-2xl font-bold text-gray-400 dark:text-gray-500"
+                      >
+                        --
+                      </div>
+                      <div
+                        class="text-xs text-gray-500 dark:text-gray-400 mt-1"
+                      >
+                        Temp Est.
+                      </div>
+                    </div>
+                    <div
+                      class="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 text-center"
+                    >
+                      <div
+                        class="text-2xl font-bold text-gray-400 dark:text-gray-500"
+                      >
+                        --
+                      </div>
+                      <div
+                        class="text-xs text-gray-500 dark:text-gray-400 mt-1"
+                      >
+                        DO Est.
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Virtual Sensors -->
+                  <div id="virtualSensors" class="mt-4 hidden">
+                    <h3
+                      class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                    >
+                      Virtual Sensors
+                    </h3>
+                    <div class="grid grid-cols-3 gap-3">
+                      <div
+                        class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 text-center"
+                      >
+                        <div
+                          class="text-lg font-semibold text-gray-700 dark:text-gray-300"
+                          id="vTemp"
+                        >
+                          --
+                        </div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400">
+                          Temperature
+                        </div>
+                      </div>
+                      <div
+                        class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 text-center"
+                      >
+                        <div
+                          class="text-lg font-semibold text-gray-700 dark:text-gray-300"
+                          id="vDO"
+                        >
+                          --
+                        </div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400">
+                          Dissolved O₂
+                        </div>
+                      </div>
+                      <div
+                        class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 text-center"
+                      >
+                        <div
+                          class="text-lg font-semibold text-gray-700 dark:text-gray-300"
+                          id="vTurbidity"
+                        >
+                          --
+                        </div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400">
+                          Turbidity
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Cleaned Features (Collapsible) -->
+                  <div id="cleanedFeatures" class="mt-4 hidden">
+                    <button
+                      onclick="document.getElementById('featuresContent').classList.toggle('hidden'); this.querySelector('svg').classList.toggle('rotate-180')"
+                      class="flex items-center justify-between w-full text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                    >
+                      <span>Cleaned Features</span>
+                      <svg
+                        class="w-4 h-4 transition-transform"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
+                    </button>
+                    <div id="featuresContent" class="hidden">
+                      <div
+                        class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 max-h-48 overflow-y-auto"
+                      >
+                        <pre
+                          id="featuresJson"
+                          class="text-xs text-gray-600 dark:text-gray-400 whitespace-pre-wrap font-mono"
+                        >
+No features yet</pre
+                        >
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Alerts & Recommendations Card -->
+                <div
+                  class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 card-hover"
+                >
+                  <h2
+                    class="text-lg font-semibold text-gray-800 dark:text-white mb-4 flex items-center"
+                  >
+                    <div
+                      class="w-8 h-8 bg-orange-100 dark:bg-orange-900/50 rounded-lg flex items-center justify-center mr-3"
+                    >
+                      <svg
+                        class="w-4 h-4 text-orange-600 dark:text-orange-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                        />
+                      </svg>
+                    </div>
+                    Alerts & Recommendations
+                    <span
+                      id="anomalyIndicator"
+                      class="hidden ml-2 px-2 py-0.5 bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-400 text-xs font-medium rounded-full"
+                    >
+                      ⚠ Anomaly
+                    </span>
+                  </h2>
+                  <div id="alertsList" class="space-y-2">
+                    <div
+                      class="text-gray-500 dark:text-gray-400 text-sm italic flex items-center"
+                    >
+                      <svg
+                        class="w-4 h-4 mr-2"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                      No alerts yet. Run a prediction to see recommendations.
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Data Comparison Card -->
+                <div
+                  id="dataComparisonCard"
+                  class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 card-hover hidden"
+                >
+                  <h2
+                    class="text-lg font-semibold text-gray-800 dark:text-white mb-4 flex items-center"
+                  >
+                    <div
+                      class="w-8 h-8 bg-violet-100 dark:bg-violet-900/50 rounded-lg flex items-center justify-center mr-3"
+                    >
+                      <svg
+                        class="w-4 h-4 text-violet-600 dark:text-violet-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                        />
+                      </svg>
+                    </div>
+                    Data Comparison
+                    <span
+                      class="ml-auto text-xs text-gray-500 dark:text-gray-400"
+                      >Current vs Session Avg</span
+                    >
+                  </h2>
+                  <div class="space-y-3">
+                    <!-- pH Comparison -->
+                    <div class="flex items-center justify-between py-2">
+                      <span class="text-sm text-gray-600 dark:text-gray-400"
+                        >pH</span
+                      >
+                      <div class="flex items-center gap-4">
+                        <div class="text-right">
+                          <div
+                            id="compCurrentPh"
+                            class="text-sm font-semibold text-blue-600 dark:text-blue-400"
+                          >
+                            --
+                          </div>
+                          <div class="text-xs text-gray-500">Current</div>
+                        </div>
+                        <div
+                          id="compPhDiff"
+                          class="text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-700"
+                        >
+                          --
+                        </div>
+                        <div class="text-right">
+                          <div
+                            id="compAvgPh"
+                            class="text-sm font-semibold text-gray-600 dark:text-gray-400"
+                          >
+                            --
+                          </div>
+                          <div class="text-xs text-gray-500">Average</div>
+                        </div>
+                      </div>
+                    </div>
+                    <!-- TDS Comparison -->
+                    <div
+                      class="flex items-center justify-between py-2 border-t border-gray-100 dark:border-gray-700"
+                    >
+                      <span class="text-sm text-gray-600 dark:text-gray-400"
+                        >TDS</span
+                      >
+                      <div class="flex items-center gap-4">
+                        <div class="text-right">
+                          <div
+                            id="compCurrentTds"
+                            class="text-sm font-semibold text-purple-600 dark:text-purple-400"
+                          >
+                            --
+                          </div>
+                          <div class="text-xs text-gray-500">Current</div>
+                        </div>
+                        <div
+                          id="compTdsDiff"
+                          class="text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-700"
+                        >
+                          --
+                        </div>
+                        <div class="text-right">
+                          <div
+                            id="compAvgTds"
+                            class="text-sm font-semibold text-gray-600 dark:text-gray-400"
+                          >
+                            --
+                          </div>
+                          <div class="text-xs text-gray-500">Average</div>
+                        </div>
+                      </div>
+                    </div>
+                    <!-- Anomaly Rate Comparison -->
+                    <div
+                      class="flex items-center justify-between py-2 border-t border-gray-100 dark:border-gray-700"
+                    >
+                      <span class="text-sm text-gray-600 dark:text-gray-400"
+                        >Quality Status</span
+                      >
+                      <div class="flex items-center gap-2">
+                        <span
+                          id="compStatusCurrent"
+                          class="px-2 py-1 text-xs rounded-full bg-gray-100 dark:bg-gray-700"
+                          >--</span
+                        >
+                        <span class="text-gray-400">→</span>
+                        <span
+                          id="compStatusTrend"
+                          class="text-xs text-gray-500 dark:text-gray-400"
+                          >No trend data</span
+                        >
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Recent Data Card (Placeholder) -->
+                <div
+                  class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 card-hover"
+                >
+                  <h2
+                    class="text-lg font-semibold text-gray-800 dark:text-white mb-4 flex items-center"
+                  >
+                    <div
+                      class="w-8 h-8 bg-cyan-100 dark:bg-cyan-900/50 rounded-lg flex items-center justify-center mr-3"
+                    >
+                      <svg
+                        class="w-4 h-4 text-cyan-600 dark:text-cyan-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                        />
+                      </svg>
+                    </div>
+                    Recent Readings
+                  </h2>
+                  <div id="recentReadings" class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                      <thead>
+                        <tr
+                          class="text-left text-gray-500 dark:text-gray-400 border-b dark:border-gray-700"
+                        >
+                          <th class="pb-2 font-medium">Time</th>
+                          <th class="pb-2 font-medium">pH</th>
+                          <th class="pb-2 font-medium">TDS</th>
+                          <th class="pb-2 font-medium">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody
+                        id="readingsTableBody"
+                        class="text-gray-700 dark:text-gray-300"
+                      >
+                        <tr>
+                          <td
+                            colspan="4"
+                            class="py-4 text-center text-gray-500 dark:text-gray-400 italic"
+                          >
+                            No readings yet
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <!-- Event Timeline (Task 7) -->
+                <div
+                  class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mt-6"
+                >
+                  <div class="flex items-center justify-between mb-4">
+                    <h2
+                      class="text-xl font-semibold text-gray-800 dark:text-white flex items-center gap-2"
+                    >
+                      <svg
+                        class="w-5 h-5 text-purple-500"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                      Event Timeline
+                    </h2>
+                    <button
+                      id="clearTimelineBtn"
+                      class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                  <div id="eventTimeline" class="max-h-80 overflow-y-auto">
+                    <div
+                      class="text-center text-gray-500 dark:text-gray-400 py-8"
+                    >
+                      <svg
+                        class="w-12 h-12 mx-auto mb-3 opacity-50"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                      <p>No events recorded yet</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Forecast Content -->
+          <div data-content="forecast" class="hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <!-- Forecast Chart -->
+              <div
+                class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+              >
+                <div class="flex items-center justify-between mb-4">
+                  <h2
+                    class="text-xl font-semibold text-gray-800 dark:text-white"
+                  >
+                    LSTM Forecast
+                  </h2>
+                  <div class="flex gap-2">
+                    <button
+                      id="expandForecastBtn"
+                      class="p-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 rounded-lg transition-colors"
+                      title="Expand Chart"
+                    >
+                      <svg
+                        class="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"
+                        />
+                      </svg>
+                    </button>
+                    <button
+                      id="forecast5Btn"
+                      class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+                    >
+                      <svg
+                        class="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+                        />
+                      </svg>
+                      Forecast 5 Steps
+                    </button>
+                    <button
+                      id="clearHistoryBtn"
+                      class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white text-sm font-medium rounded-lg transition-colors"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+                <p class="text-gray-500 dark:text-gray-400 mb-4 text-sm">
+                  Time-series forecasting using LSTM neural network for pH and
+                  TDS values.
+                </p>
+                <div class="h-80">
+                  <canvas id="forecastChart"></canvas>
+                </div>
+              </div>
+
+              <!-- AI Parameter Simulator (Task 5) -->
+              <div
+                class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+              >
+                <h3
+                  class="text-lg font-semibold text-gray-800 dark:text-white mb-4 flex items-center gap-2"
+                >
+                  <svg
+                    class="w-5 h-5 text-purple-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
+                    />
+                  </svg>
+                  Parameter Simulator
+                </h3>
+
+                <!-- pH Slider -->
+                <div class="mb-6">
+                  <div class="flex justify-between text-sm mb-2">
+                    <label class="text-gray-600 dark:text-gray-400"
+                      >pH Level</label
+                    >
+                    <span
+                      id="simPhValue"
+                      class="font-medium text-gray-800 dark:text-white"
+                      >7.0</span
+                    >
+                  </div>
+                  <input
+                    type="range"
+                    id="simPh"
+                    min="5"
+                    max="10"
+                    step="0.1"
+                    value="7.0"
+                    class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer slider-thumb"
+                  />
+                </div>
+
+                <!-- TDS Slider -->
+                <div class="mb-6">
+                  <div class="flex justify-between text-sm mb-2">
+                    <label class="text-gray-600 dark:text-gray-400"
+                      >TDS (mg/L)</label
+                    >
+                    <span
+                      id="simTdsValue"
+                      class="font-medium text-gray-800 dark:text-white"
+                      >350</span
+                    >
+                  </div>
+                  <input
+                    type="range"
+                    id="simTds"
+                    min="100"
+                    max="1500"
+                    step="10"
+                    value="350"
+                    class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer slider-thumb"
+                  />
+                </div>
+
+                <!-- Hour Slider -->
+                <div class="mb-6">
+                  <div class="flex justify-between text-sm mb-2">
+                    <label class="text-gray-600 dark:text-gray-400"
+                      >Time of Day</label
+                    >
+                    <span
+                      id="simHourValue"
+                      class="font-medium text-gray-800 dark:text-white"
+                      >12:00</span
+                    >
+                  </div>
+                  <input
+                    type="range"
+                    id="simHour"
+                    min="0"
+                    max="23"
+                    step="1"
+                    value="12"
+                    class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer slider-thumb"
+                  />
+                </div>
+
+                <!-- Simulation Results -->
+                <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
+                  <div class="flex items-center justify-between mb-3">
+                    <span
+                      class="text-sm font-medium text-gray-600 dark:text-gray-400"
+                      >Predicted Status</span
+                    >
+                    <span
+                      id="simStatus"
+                      class="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
+                      >--</span
+                    >
+                  </div>
+                  <div
+                    id="simResults"
+                    class="text-sm text-gray-600 dark:text-gray-400"
+                  >
+                    <p class="text-center py-4 opacity-50">
+                      Adjust parameters to simulate
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Anomaly Visualization Row -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+              <!-- Anomaly Timeline -->
+              <div
+                class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+              >
+                <h3
+                  class="text-lg font-semibold text-gray-800 dark:text-white mb-4"
+                >
+                  Anomaly Timeline
+                </h3>
+                <div class="h-64">
+                  <canvas id="anomalyTimelineChart"></canvas>
+                </div>
+              </div>
+
+              <!-- Risk Heatmap -->
+              <div
+                class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+              >
+                <h3
+                  class="text-lg font-semibold text-gray-800 dark:text-white mb-4"
+                >
+                  Risk Heatmap
+                </h3>
+                <div class="h-64">
+                  <canvas id="riskHeatmapChart"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Assistant Content -->
+          <div data-content="assistant" class="hidden">
+            <div
+              class="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-200px)] min-h-[500px]"
+            >
+              <!-- Chat Panel -->
+              <div
+                class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col"
+              >
+                <!-- Chat Header -->
+                <div
+                  class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between"
+                >
+                  <div class="flex items-center gap-3">
+                    <div
+                      class="w-10 h-10 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 flex items-center justify-center"
+                    >
+                      <svg
+                        class="w-6 h-6 text-white"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                        />
+                      </svg>
+                    </div>
+                    <div>
+                      <h2
+                        class="text-lg font-semibold text-gray-800 dark:text-white"
+                      >
+                        AquaBot Assistant
+                      </h2>
+                      <p class="text-xs text-gray-500 dark:text-gray-400">
+                        GenAI-powered water quality expert
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    id="clearChatBtn"
+                    class="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    title="Clear chat"
+                  >
+                    <svg
+                      class="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                      />
+                    </svg>
+                  </button>
+                </div>
+
+                <!-- Chat Messages -->
+                <div
+                  id="chatMessages"
+                  class="flex-1 overflow-y-auto p-6 space-y-4"
+                >
+                  <!-- Welcome Message -->
+                  <div class="flex gap-3">
+                    <div
+                      class="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 flex-shrink-0 flex items-center justify-center"
+                    >
+                      <svg
+                        class="w-4 h-4 text-white"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                        />
+                      </svg>
+                    </div>
+                    <div class="flex-1">
+                      <div
+                        class="bg-gray-100 dark:bg-gray-700 rounded-xl rounded-tl-sm p-4 inline-block max-w-xl"
+                      >
+                        <p class="text-gray-800 dark:text-gray-200 text-sm">
+                          👋 Hello! I'm AquaBot, your AI assistant for water
+                          quality monitoring. I can help you with:
+                        </p>
+                        <ul
+                          class="mt-2 text-sm text-gray-600 dark:text-gray-400 list-disc list-inside space-y-1"
+                        >
+                          <li>Explaining prediction results</li>
+                          <li>
+                            Recommending actions based on water parameters
+                          </li>
+                          <li>
+                            Answering questions about aquaculture best practices
+                          </li>
+                          <li>Troubleshooting water quality issues</li>
+                        </ul>
+                        <p
+                          class="mt-2 text-gray-800 dark:text-gray-200 text-sm"
+                        >
+                          How can I help you today?
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Chat Input -->
+                <div
+                  class="px-6 py-4 border-t border-gray-200 dark:border-gray-700"
+                >
+                  <div class="flex gap-3">
+                    <button
+                      id="micBtn"
+                      class="p-3 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                      title="Voice input"
+                    >
+                      <svg
+                        class="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"
+                        />
+                      </svg>
+                    </button>
+                    <input
+                      type="text"
+                      id="chatInput"
+                      placeholder="Ask about water quality, predictions, or recommendations..."
+                      class="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    <button
+                      id="sendMessageBtn"
+                      class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors flex items-center gap-2"
+                    >
+                      <span>Send</span>
+                      <svg
+                        class="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Quick Actions Panel -->
+              <div
+                class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+              >
+                <h3
+                  class="text-lg font-semibold text-gray-800 dark:text-white mb-4"
+                >
+                  Quick Actions
+                </h3>
+
+                <div class="space-y-3">
+                  <button
+                    onclick="window.explainPrediction && window.explainPrediction()"
+                    class="w-full px-4 py-3 text-left bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors flex items-center gap-3"
+                  >
+                    <svg
+                      class="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                      />
+                    </svg>
+                    Explain Last Prediction
+                  </button>
+
+                  <button
+                    onclick="window.sendMessage && window.sendMessage('What are the optimal pH and TDS ranges for fish farming?')"
+                    class="w-full px-4 py-3 text-left bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/40 transition-colors flex items-center gap-3"
+                  >
+                    <svg
+                      class="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    Optimal Ranges
+                  </button>
+
+                  <button
+                    onclick="window.sendMessage && window.sendMessage('How do I reduce ammonia levels in my aquaculture system?')"
+                    class="w-full px-4 py-3 text-left bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 rounded-lg hover:bg-yellow-100 dark:hover:bg-yellow-900/40 transition-colors flex items-center gap-3"
+                  >
+                    <svg
+                      class="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                      />
+                    </svg>
+                    Reduce Ammonia
+                  </button>
+
+                  <button
+                    onclick="window.sendMessage && window.sendMessage('What causes sudden drops in dissolved oxygen?')"
+                    class="w-full px-4 py-3 text-left bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-colors flex items-center gap-3"
+                  >
+                    <svg
+                      class="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    DO Drop Causes
+                  </button>
+                </div>
+
+                <!-- Voice Status -->
+                <div
+                  class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700"
+                >
+                  <h4
+                    class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-3"
+                  >
+                    Voice Assistant
+                  </h4>
+                  <div
+                    id="voiceStatus"
+                    class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400"
+                  >
+                    <span class="w-2 h-2 rounded-full bg-gray-400"></span>
+                    <span>Ready</span>
+                  </div>
+                  <p class="text-xs text-gray-400 dark:text-gray-500 mt-2">
+                    Click the microphone button to speak your question
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Reports Content -->
+          <div data-content="reports" class="hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <!-- Report Generation -->
+              <div
+                class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+              >
+                <h2
+                  class="text-xl font-semibold text-gray-800 dark:text-white mb-4 flex items-center gap-2"
+                >
+                  <svg
+                    class="w-6 h-6 text-red-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  </svg>
+                  Generate Reports
+                </h2>
+                <p class="text-gray-500 dark:text-gray-400 mb-6">
+                  Download comprehensive PDF reports with water quality
+                  analysis, predictions, and recommendations.
+                </p>
+
+                <div class="space-y-4">
+                  <!-- Daily Report -->
+                  <div
+                    class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
+                  >
+                    <div>
+                      <h3 class="font-medium text-gray-800 dark:text-white">
+                        Daily Report
+                      </h3>
+                      <p class="text-sm text-gray-500 dark:text-gray-400">
+                        Last 24 hours summary
+                      </p>
+                    </div>
+                    <button
+                      id="dailyReportBtn"
+                      class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center"
+                    >
+                      <svg
+                        class="w-4 h-4 mr-2"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
+                      </svg>
+                      Daily Report
+                    </button>
+                  </div>
+
+                  <!-- Weekly Report -->
+                  <div
+                    class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
+                  >
+                    <div>
+                      <h3 class="font-medium text-gray-800 dark:text-white">
+                        Weekly Report
+                      </h3>
+                      <p class="text-sm text-gray-500 dark:text-gray-400">
+                        Last 7 days analysis
+                      </p>
+                    </div>
+                    <button
+                      id="weeklyReportBtn"
+                      class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center"
+                    >
+                      <svg
+                        class="w-4 h-4 mr-2"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
+                      </svg>
+                      Weekly Report
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Report Info -->
+              <div
+                class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+              >
+                <h3
+                  class="text-lg font-semibold text-gray-800 dark:text-white mb-4"
+                >
+                  Report Contents
+                </h3>
+
+                <ul class="space-y-3">
+                  <li class="flex items-start gap-3">
+                    <svg
+                      class="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                    <div>
+                      <span class="font-medium text-gray-800 dark:text-white"
+                        >Water Quality Summary</span
+                      >
+                      <p class="text-sm text-gray-500 dark:text-gray-400">
+                        Average pH, TDS, temperature readings
+                      </p>
+                    </div>
+                  </li>
+                  <li class="flex items-start gap-3">
+                    <svg
+                      class="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                    <div>
+                      <span class="font-medium text-gray-800 dark:text-white"
+                        >Classification Results</span
+                      >
+                      <p class="text-sm text-gray-500 dark:text-gray-400">
+                        Safe/Stress/Danger distribution
+                      </p>
+                    </div>
+                  </li>
+                  <li class="flex items-start gap-3">
+                    <svg
+                      class="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                    <div>
+                      <span class="font-medium text-gray-800 dark:text-white"
+                        >Anomaly Detection</span
+                      >
+                      <p class="text-sm text-gray-500 dark:text-gray-400">
+                        Detected anomalies and scores
+                      </p>
+                    </div>
+                  </li>
+                  <li class="flex items-start gap-3">
+                    <svg
+                      class="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                    <div>
+                      <span class="font-medium text-gray-800 dark:text-white"
+                        >Trend Analysis</span
+                      >
+                      <p class="text-sm text-gray-500 dark:text-gray-400">
+                        Parameter trends and forecasts
+                      </p>
+                    </div>
+                  </li>
+                  <li class="flex items-start gap-3">
+                    <svg
+                      class="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                    <div>
+                      <span class="font-medium text-gray-800 dark:text-white"
+                        >AI Recommendations</span
+                      >
+                      <p class="text-sm text-gray-500 dark:text-gray-400">
+                        Actionable insights and suggestions
+                      </p>
+                    </div>
+                  </li>
+                </ul>
+
+                <div class="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                  <p class="text-sm text-blue-700 dark:text-blue-400">
+                    <strong>Pro tip:</strong> Reports are generated in PDF
+                    format and include all data from the selected time period.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sensor Health Content -->
+          <div data-content="sensors" class="hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <!-- Sensor Stats -->
+              <div class="lg:col-span-1 space-y-6">
+                <!-- Reliability Score Card -->
+                <div
+                  class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+                >
+                  <h3
+                    class="text-lg font-semibold text-gray-800 dark:text-white mb-4 flex items-center gap-2"
+                  >
+                    <svg
+                      class="w-5 h-5 text-green-500"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                      />
+                    </svg>
+                    Reliability Score
+                  </h3>
+                  <div class="text-center py-4">
+                    <span
+                      id="reliabilityScore"
+                      class="text-5xl font-bold text-green-600"
+                      >--</span
+                    >
+                    <span class="text-xl text-gray-500 dark:text-gray-400"
+                      >%</span
+                    >
+                  </div>
+                  <div
+                    class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 mt-4"
+                  >
+                    <div
+                      class="bg-gradient-to-r from-green-400 to-green-600 h-3 rounded-full"
+                      style="width: 87%"
+                    ></div>
+                  </div>
+                </div>
+
+                <!-- Drift Metrics -->
+                <div
+                  class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+                >
+                  <h3
+                    class="text-lg font-semibold text-gray-800 dark:text-white mb-4"
+                  >
+                    Sensor Drift
+                  </h3>
+                  <div class="space-y-4">
+                    <div>
+                      <div class="flex justify-between text-sm mb-1">
+                        <span class="text-gray-600 dark:text-gray-400"
+                          >pH Sensor</span
+                        >
+                        <span class="text-blue-600 dark:text-blue-400"
+                          >1.2%</span
+                        >
+                      </div>
+                      <div
+                        class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2"
+                      >
+                        <div
+                          class="bg-blue-500 h-2 rounded-full"
+                          style="width: 12%"
+                        ></div>
+                      </div>
+                    </div>
+                    <div>
+                      <div class="flex justify-between text-sm mb-1">
+                        <span class="text-gray-600 dark:text-gray-400"
+                          >TDS Sensor</span
+                        >
+                        <span class="text-purple-600 dark:text-purple-400"
+                          >2.8%</span
+                        >
+                      </div>
+                      <div
+                        class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2"
+                      >
+                        <div
+                          class="bg-purple-500 h-2 rounded-full"
+                          style="width: 28%"
+                        ></div>
+                      </div>
+                    </div>
+                  </div>
+                  <p
+                    id="driftPercent"
+                    class="text-xs text-gray-500 dark:text-gray-400 mt-4 text-center"
+                  >
+                    pH: 1.2% | TDS: 2.8%
+                  </p>
+                </div>
+
+                <!-- Anomaly Score -->
+                <div
+                  class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+                >
+                  <h3
+                    class="text-lg font-semibold text-gray-800 dark:text-white mb-4"
+                  >
+                    Last Anomaly Score
+                  </h3>
+                  <div class="text-center py-2">
+                    <span
+                      id="lastAnomalyScore"
+                      class="text-3xl font-mono font-bold text-gray-800 dark:text-white"
+                      >--</span
+                    >
+                  </div>
+                  <p
+                    class="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center"
+                  >
+                    Negative = Normal, Positive = Anomaly
+                  </p>
+                </div>
+              </div>
+
+              <!-- Drift Trend Chart -->
+              <div
+                class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+              >
+                <div class="flex items-center justify-between mb-4">
+                  <h3
+                    class="text-lg font-semibold text-gray-800 dark:text-white"
+                  >
+                    Drift Trend (24h)
+                  </h3>
+                  <button
+                    onclick="loadSensorHealth()"
+                    class="px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors"
+                  >
+                    Refresh
+                  </button>
+                </div>
+                <div class="h-80">
+                  <canvas id="driftTrendChart"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <!-- Recommendations -->
+            <div
+              class="mt-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+            >
+              <h3
+                class="text-lg font-semibold text-gray-800 dark:text-white mb-4 flex items-center gap-2"
+              >
+                <svg
+                  class="w-5 h-5 text-yellow-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                  />
+                </svg>
+                Sensor Recommendations
+              </h3>
+              <p
+                id="sensorRecommendation"
+                class="text-gray-600 dark:text-gray-400"
+              >
+                Loading recommendations...
+              </p>
+            </div>
+          </div>
+
+          <!-- Settings Content -->
+          <div data-content="settings" class="hidden">
+            <div
+              class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+            >
+              <h2
+                class="text-xl font-semibold text-gray-800 dark:text-white mb-4"
+              >
+                Settings
+              </h2>
+              <div class="space-y-4">
+                <div
+                  class="flex items-center justify-between py-3 border-b dark:border-gray-700"
+                >
+                  <div>
+                    <h3 class="font-medium text-gray-800 dark:text-white">
+                      Dark Mode
+                    </h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                      Toggle dark/light theme
+                    </p>
+                  </div>
+                  <button
+                    onclick="toggleDarkMode()"
+                    class="relative inline-flex h-6 w-11 items-center rounded-full bg-gray-200 dark:bg-blue-600 transition-colors"
+                  >
+                    <span
+                      class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform translate-x-1 dark:translate-x-6"
+                    ></span>
+                  </button>
+                </div>
+                <div
+                  class="flex items-center justify-between py-3 border-b dark:border-gray-700"
+                >
+                  <div>
+                    <h3 class="font-medium text-gray-800 dark:text-white">
+                      Notifications
+                    </h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                      Enable browser notifications
+                    </p>
+                  </div>
+                  <button
+                    class="relative inline-flex h-6 w-11 items-center rounded-full bg-gray-200 transition-colors"
+                  >
+                    <span
+                      class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform translate-x-1"
+                    ></span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
+
+        <!-- Footer -->
+        <footer
+          class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-6 py-3"
+        >
+          <div
+            class="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400"
+          >
+            <span>Water Intelligence System v2.0</span>
+            <a
+              href="/docs"
+              class="text-blue-600 dark:text-blue-400 hover:underline"
+              >API Documentation</a
+            >
+          </div>
+        </footer>
+      </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/static/js/charts.js"></script>
+    <script src="/static/js/assistant.js"></script>
+    <script src="/static/js/app.js"></script>
+  </body>
+</html>
