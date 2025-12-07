@@ -208,8 +208,8 @@ python scripts/train_lstm_pytorch.py --data-csv data/cleaned.csv --models-dir mo
 
 ```bash
 # Start the API server
-cd src/backend
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
+python -m uvicorn src.backend.main:app --reload
+
 ```
 
 ### Access the Dashboard
